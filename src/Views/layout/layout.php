@@ -4,7 +4,9 @@
 
 use App\Config\App;
 use App\Core\View;
+use App\Features\Notification\Models\Notification;
 
+$unreadCount = !empty($auth) ? Notification::unreadCount($auth['id']) : 0;
 ?>
 <!DOCTYPE html>
 <html lang="fa" dir="rtl">
@@ -19,6 +21,7 @@ use App\Core\View;
     <a href="/" class="brand"><?= View::e(App::name()) ?></a>
     <nav>
         <?php if (!empty($auth)): ?>
+            <a href="/notifications">اعلان‌ها<?= $unreadCount > 0 ? ' <span class="badge">' . $unreadCount . '</span>' : '' ?></a>
             <a href="/dashboard">داشبورد</a>
         <?php else: ?>
             <a href="/login">ورود</a>

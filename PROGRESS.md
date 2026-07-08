@@ -1,5 +1,60 @@
 # PROGRESS.md
 
+## فاز ۴: ماژول پرداخت و Onboarding — ✅ تکمیل‌شده
+
+تاریخ: 2026-07-08
+
+### خلاصه اقدامات
+
+- Migrationهای `013`..`017`: `images` (تصاویر فیش واریزی، رمزنگاری‌شده)، `invoices` (با `installment_count`)، `payments` (کلید ترکیبی منطقی نیست ولی هر ردیف = یک قسط با `payment_intent_id UNIQUE` برای Idempotency)، `notifications`، و ستون `companies.onboarding_tour_completed_at` + جدول `company_onboarding_progress`.
+- **ماژول پرداخت** (`src/Features/Payment/`):
+  - `Lib\ZarinpalClient`: پیاده‌سازی مستقیم REST API v4 زرین‌پال (بدون SDK)، با انتقال HTTP قابل Override برای تست بدون نیاز به شبکه واقعی. متدهای `request()`/`verify()` مطابق مستندات رسمی (کد ۱۰۰ موفق، ۱۰۱ = قبلاً تایید شده).
+  - **Idempotency**: `PaymentService::getOrCreatePendingPayment()` برای هر (invoice, قسط, روش پرداخت) به‌جای ساخت رکورد جدید در هر تلاش، رکورد PENDING موجود را بازیابی می‌کند؛ تلاش دوباره برای شروع پرداخت زرین‌پال یک تراکنش گیت‌وی جدید باز نمی‌کند (تایید شده با تست) و ارسال مجدد فیش واریزی با شماره پیگیری یکسان تکراری ثبت نمی‌شود.
+  - **پرداخت اقساطی**: `invoices.installment_count` (تا ۳ قسط)، `PaymentService::installmentPlan()` مبلغ را بین اقساط تقسیم می‌کند (باقیمانده به قسط آخر اضافه می‌شود)؛ هر قسط مستقل قابل پرداخت آنلاین یا با فیش است.
+  - **فیش واریز بانکی دستی**: آپلود تصویر (رمزنگاری AES-256 + تایید Magic Number مشترک با Document Vault، رد فایل جعل‌شده تایید شد)، شماره پیگیری، تاریخ واریز شمسی؛ صف تایید ادمین (`/admin/payments`) با نمایش امن تصویر رمزگشایی‌شده و دکمه تایید/رد.
+  - **Audit Log دقیق**: `payment.invoice_created`, `payment.zarinpal_initiated`, `payment.verified`, `payment.zarinpal_failed`, `payment.manual_submitted`, `payment.approved`, `payment.rejected`.
+- **سیستم اعلان و Communication Matrix** (`src/Core/Notifier.php`): نگاشت متمرکز رویداد→(نوع، کانال‌ها) برای تخصیص داور، درخواست/پاسخ شفاف‌سازی، پذیرش/رد نهایی، صدور صورت‌حساب، دریافت/رد پرداخت، پیام خوش‌آمدگویی. کانال IN_APP در جدول `notifications` + صفحه `/notifications` و badge تعداد نخوانده در هدر؛ EMAIL از `Lib\Mailer` موجود استفاده می‌کند؛ SMS با `Lib\SmsSender` (stub مشابه Mailer، نوشتن در `storage/sms`) تنها در صورت وجود شماره موبایل کاربر ارسال می‌شود. رویدادهای فازهای قبل (تخصیص داور، شفاف‌سازی، Manual Override) در همین فاز به Notifier متصل شدند.
+- **Onboarding** (`src/Features/Onboarding/`):
+  - **Welcome Sequence**: اولین بازدید از `/onboarding` پس از پذیرش، یک اعلان خوش‌آمدگویی (IN_APP+EMAIL) ارسال می‌کند؛ با نشانگر idempotency در `company_onboarding_progress` تضمین می‌شود دقیقاً یک‌بار ارسال شود (تست شد).
+  - **Guided Tour**: پیاده‌سازی سبک JS خالص (بدون کتابخانه) به‌صورت مودال چندمرحله‌ای، فقط در اولین بازدید نمایش داده می‌شود و بعد از اتمام/رد‌کردن، در ستون `companies.onboarding_tour_completed_at` ثبت و دیگر تکرار نمی‌شود.
+  - **چک‌لیست هفته اول** (۸ آیتم): سه مورد به‌صورت خودکار از داده واقعی مشتق می‌شوند (تکمیل پروفایل شرکت، وجود حداقل یک سند، پرداخت کامل شهریه — غیرقابل تقلب دستی)، پنج مورد باقی self-report با toggle هستند. نوار پیشرفت درصدی.
+- ادغام دو-طرفه: صفحه پرداخت پس از تسویه کامل لینک مستقیم به Onboarding را نشان می‌دهد؛ Onboarding نیز وضعیت پرداخت را به‌صورت زنده از `PaymentService::isFullyPaid()` می‌خواند (نه یک فلگ کش‌شده که ممکن است desync شود).
+
+### باگ‌های واقعی پیدا و رفع‌شده در این فاز
+
+- **Router param type mismatch**: `PaymentController::payViaZarinpal(int $installmentNumber)` و `submitManualTransfer(int $installmentNumber)` با `declare(strict_types=1)` روی پارامترهای مسیر (که همیشه string هستند) اعلام شده بودند → `TypeError` واقعی در تست HTTP دستی گرفته شد (نه در PHPUnit، چون تست‌های Integration مستقیماً روی Service کار می‌کنند نه Router). امضای متدها به `string` تغییر و cast به `int` داخل بدنه انجام شد؛ به‌عنوان قاعده، بقیه کنترلرها بررسی شدند و مورد مشابه دیگری یافت نشد.
+
+### تست‌های پاس‌شده
+
+- `composer test` → **114/114 passed, 199 assertions** (۲۹ تست جدید: `ZarinpalClientTest` با transport جعلی، `PaymentServiceTest`, `OnboardingServiceTest`, `NotifierTest`).
+- Lint: `php -l` روی همه فایل‌های `src/`, `public/`, `tests/` بدون خطا.
+- تست End-to-End کامل روی HTTP واقعی با MariaDB: بازدید متقاضی پذیرفته‌شده از `/payment` → صدور خودکار صورت‌حساب (idempotent در بازدیدهای بعدی) → ثبت فیش واریزی با تصویر واقعی JPEG → صف ادمین → مشاهده تصویر رمزگشایی‌شده صحیح → تایید پرداخت → صفحه پرداخت «تسویه کامل» را نشان داد → `/onboarding` سه آیتم خودکار را ✅ نشان داد → toggle یک آیتم دستی، افزایش درصد پیشرفت → تکمیل Guided Tour و عدم نمایش مجدد → بررسی صندوق اعلان‌ها (in-app + فایل‌های واقعی ایمیل/پیامک در storage).
+- **محدودیت صادقانه**: اتصال واقعی به sandbox.zarinpal.com از این محیط توسعه قابل دسترس نیست (شبکه خروجی مسدود)؛ منطق کامل درخواست/تایید با `ZarinpalClientTest` روی یک HTTP transport جعلی تایید شده (رفتار موفق/ناموفق/۱۰۱=قبلاً تایید شده مطابق مستندات رسمی)، اما فراخوانی زنده گیت‌وی در این نشست تست نشده است.
+- بررسی بصری موبایل (۳۹۰px) با اسکرین‌شات Playwright برای صفحه پرداخت و چک‌لیست Onboarding.
+
+### مسیرهای اصلی (فاز ۴)
+
+| مسیر | توضیح |
+|---|---|
+| `GET /payment` | صفحه پرداخت (صدور خودکار صورت‌حساب) |
+| `POST /payment/{n}/zarinpal`, `GET /payment/callback` | پرداخت آنلاین زرین‌پال |
+| `POST /payment/{n}/manual` | ثبت فیش واریز بانکی |
+| `GET,POST /admin/payments`, `GET /admin/payments/{id}/receipt` | تایید/رد فیش‌ها (ادمین) |
+| `GET /onboarding`, `POST /onboarding/checklist`, `POST /onboarding/tour/complete` | Onboarding |
+| `GET /notifications` | مرکز اعلان‌ها |
+
+### نکات برای فازهای بعدی
+
+- `Constants::PROGRAM_FEE_IRR` فعلاً یک عدد ثابت در کد است؛ اگر نیاز به شهریه متغیر بر اساس کوهورت باشد باید از جدول `system_configs` (هنوز پیاده نشده) خوانده شود.
+- گیت‌وی زرین‌پال روی sandbox تنظیم شده (`ZARINPAL_SANDBOX=true`)؛ پیش از استقرار واقعی باید `ZARINPAL_MERCHANT_ID` واقعی در `.env` تنظیم و یک تراکنش زنده تست شود (خارج از این محیط توسعه ممکن است).
+- موارد دستی چک‌لیست Onboarding (رزرو جلسه منتورینگ، مرکز آموزش) به فاز ۵ (Task Management، Mentor Booking، LMS) وصل می‌شوند؛ در آن فاز می‌توان این آیتم‌ها را هم به‌صورت خودکار (نه صرفاً self-report) مشتق کرد.
+
+### کامیت
+
+تغییرات این فاز طی یک کامیت با پیام مرتبط ثبت و به شاخه `claude/untitled-session-s0fr4t` push شد.
+
+---
+
 ## فاز ۳: سیستم داوری و مدیریت اسناد — ✅ تکمیل‌شده
 
 تاریخ: 2026-07-08

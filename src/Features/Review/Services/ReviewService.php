@@ -6,10 +6,12 @@ namespace App\Features\Review\Services;
 
 use App\Config\Constants;
 use App\Core\AuditLog;
+use App\Core\Notifier;
 use App\Features\Application\Models\Application;
 use App\Features\Auth\Models\Role;
 use App\Features\Cohort\Models\CompanyCohort;
 use App\Features\Auth\Models\User;
+use App\Features\Company\Models\Company;
 use App\Features\Review\Models\ApplicationClarification;
 use App\Features\Review\Models\ApplicationReviewer;
 
@@ -50,6 +52,14 @@ final class ReviewService
         }
 
         AuditLog::record('review.reviewer_assigned', 'Application', $applicationId, null, ['reviewer_user_id' => $reviewerUserId]);
+
+        Notifier::send(
+            'review.reviewer_assigned',
+            $reviewerUserId,
+            'درخواست جدید برای داوری',
+            'یک درخواست پذیرش جدید برای داوری به شما تخصیص یافت.',
+            '/reviewer/applications/' . $applicationId
+        );
     }
 
     public function unassignReviewer(string $applicationId, string $reviewerUserId): void
@@ -121,6 +131,18 @@ final class ReviewService
         Application::update($applicationId, ['status' => 'PENDING_INFO']);
 
         AuditLog::record('review.clarification_requested', 'Application', $applicationId, null, ['reviewer_user_id' => $reviewerUserId]);
+
+        $application = Application::find($applicationId);
+        $ownerId = $this->ownerUserId($application['company_id'] ?? null);
+        if ($ownerId !== null) {
+            Notifier::send(
+                'review.clarification_requested',
+                $ownerId,
+                'درخواست شفاف‌سازی از داور',
+                'داور برای بررسی درخواست شما به اطلاعات بیشتری نیاز دارد: ' . $question,
+                '/applications/' . $applicationId
+            );
+        }
     }
 
     public function respondClarification(string $clarificationId, string $response): void
@@ -143,6 +165,23 @@ final class ReviewService
         }
 
         AuditLog::record('review.clarification_responded', 'Application', $applicationId, null, ['clarification_id' => $clarificationId]);
+
+        Notifier::send(
+            'review.clarification_responded',
+            $clarification['reviewer_user_id'],
+            'پاسخ متقاضی دریافت شد',
+            'متقاضی به سوال شفاف‌سازی شما پاسخ داد.',
+            '/reviewer/applications/' . $applicationId
+        );
+    }
+
+    private function ownerUserId(?string $companyId): ?string
+    {
+        if ($companyId === null) {
+            return null;
+        }
+
+        return Company::find($companyId)['owner_user_id'] ?? null;
     }
 
     /** @return array{scores: array<int, array<string, mixed>>, average: ?float, hasVariance: bool} */
@@ -171,6 +210,19 @@ final class ReviewService
 
         if (in_array($newStatus, ['ACCEPTED', 'REJECTED'], true) && $before !== null) {
             CompanyCohort::upsertStatus($before['company_id'], $before['cohort_id'], $newStatus);
+
+            $ownerId = $this->ownerUserId($before['company_id']);
+            if ($ownerId !== null) {
+                Notifier::send(
+                    $newStatus === 'ACCEPTED' ? 'application.accepted' : 'application.rejected',
+                    $ownerId,
+                    $newStatus === 'ACCEPTED' ? 'درخواست شما پذیرفته شد 🎉' : 'به‌روزرسانی وضعیت درخواست',
+                    $newStatus === 'ACCEPTED'
+                        ? 'تبریک! درخواست پذیرش شما تایید شد. مراحل بعدی (پرداخت و شروع برنامه) را در داشبورد دنبال کنید.'
+                        : 'متاسفانه درخواست شما در این دوره پذیرفته نشد.',
+                    '/applications/' . $applicationId
+                );
+            }
         }
 
         AuditLog::record(

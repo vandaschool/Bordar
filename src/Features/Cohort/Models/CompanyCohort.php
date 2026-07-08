@@ -42,4 +42,17 @@ final class CompanyCohort
 
         return $row === false ? null : $row;
     }
+
+    /** Most recent cohort the company has been formally ACCEPTED into. */
+    public static function latestAcceptedForCompany(string $companyId): ?array
+    {
+        $sql = "SELECT * FROM `company_cohorts`
+                WHERE `company_id` = :company_id AND `status` = 'ACCEPTED'
+                ORDER BY `joined_at` DESC LIMIT 1";
+        $stmt = self::pdo()->prepare($sql);
+        $stmt->execute(['company_id' => $companyId]);
+        $row = $stmt->fetch();
+
+        return $row === false ? null : $row;
+    }
 }

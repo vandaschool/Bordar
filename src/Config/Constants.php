@@ -21,4 +21,9 @@ final class Constants
         self::ROLE_VENDOR,
         self::ROLE_INVESTOR,
     ];
+
+    /** Placeholder flat program fee in IRR until a real pricing/config table exists. */
+    public const PROGRAM_FEE_IRR = 500_000_000;
+
+    public const MAX_INSTALLMENTS = 3;
 }

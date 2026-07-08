@@ -14,6 +14,10 @@ use App\Features\Cohort\Controllers\CohortController;
 use App\Features\Company\Controllers\CompanyController;
 use App\Features\Company\Middleware\RequireCompanyMiddleware;
 use App\Features\Document\Controllers\DocumentController;
+use App\Features\Notification\Controllers\NotificationController;
+use App\Features\Onboarding\Controllers\OnboardingController;
+use App\Features\Payment\Controllers\PaymentAdminController;
+use App\Features\Payment\Controllers\PaymentController;
 use App\Features\Review\Controllers\ReviewAdminController;
 use App\Features\Review\Controllers\ReviewerController;
 use App\Features\Review\Middleware\ReviewerMiddleware;
@@ -48,6 +52,7 @@ $router->get('/2fa/verify', [TwoFactorController::class, 'showVerify']);
 $router->post('/2fa/verify', [TwoFactorController::class, 'verify']);
 
 $router->get('/dashboard', [DashboardController::class, 'index'], [AuthMiddleware::class]);
+$router->get('/notifications', [NotificationController::class, 'index'], [AuthMiddleware::class]);
 
 $router->group(['middleware' => [AuthMiddleware::class]], function (Router $router) {
     $router->get('/company/create', [CompanyController::class, 'showCreate']);
@@ -73,6 +78,15 @@ $router->group(['middleware' => [AuthMiddleware::class]], function (Router $rout
     });
 
     $router->get('/documents/{id}/download', [DocumentController::class, 'download']);
+
+    $router->get('/payment', [PaymentController::class, 'index']);
+    $router->post('/payment/{installmentNumber}/zarinpal', [PaymentController::class, 'payViaZarinpal']);
+    $router->post('/payment/{installmentNumber}/manual', [PaymentController::class, 'submitManualTransfer']);
+    $router->get('/payment/callback', [PaymentController::class, 'zarinpalCallback']);
+
+    $router->get('/onboarding', [OnboardingController::class, 'index']);
+    $router->post('/onboarding/checklist', [OnboardingController::class, 'toggleItem']);
+    $router->post('/onboarding/tour/complete', [OnboardingController::class, 'completeTour']);
 });
 
 $router->group(['prefix' => '/admin', 'middleware' => [AdminMiddleware::class]], function (Router $router) {
@@ -87,6 +101,11 @@ $router->group(['prefix' => '/admin', 'middleware' => [AdminMiddleware::class]],
     $router->post('/reviews/{id}/assign', [ReviewAdminController::class, 'assign']);
     $router->post('/reviews/{id}/unassign/{reviewerUserId}', [ReviewAdminController::class, 'unassign']);
     $router->post('/reviews/{id}/override', [ReviewAdminController::class, 'override']);
+
+    $router->get('/payments', [PaymentAdminController::class, 'index']);
+    $router->get('/payments/{id}/receipt', [PaymentAdminController::class, 'receipt']);
+    $router->post('/payments/{id}/approve', [PaymentAdminController::class, 'approve']);
+    $router->post('/payments/{id}/reject', [PaymentAdminController::class, 'reject']);
 });
 
 $router->group(['prefix' => '/reviewer', 'middleware' => [ReviewerMiddleware::class]], function (Router $router) {

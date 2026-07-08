@@ -24,11 +24,14 @@ $roleName = $role['name'] ?? '-';
             <h2 style="margin-top:0;font-size:1.05rem">میانبرهای مدیریتی</h2>
             <p><a href="/admin/cohorts">مدیریت کوهورت‌ها</a></p>
             <p><a href="/admin/reviews">صف داوری</a></p>
+            <p><a href="/admin/payments">تایید فیش‌های واریزی</a></p>
         <?php elseif ($roleName === 'Applicant'): ?>
             <h2 style="margin-top:0;font-size:1.05rem">میانبرها</h2>
             <p><a href="/company">پروفایل شرکت</a></p>
             <p><a href="/applications">درخواست‌های پذیرش</a></p>
             <p><a href="/documents">مخزن اسناد</a></p>
+            <p><a href="/payment">پرداخت شهریه</a></p>
+            <p><a href="/onboarding">شروع کار (Onboarding)</a></p>
         <?php elseif ($roleName === 'Reviewer'): ?>
             <h2 style="margin-top:0;font-size:1.05rem">میانبرها</h2>
             <p><a href="/reviewer/queue">درخواست‌های تخصیص‌یافته به من</a></p>
