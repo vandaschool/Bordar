@@ -26,12 +26,16 @@ final class PaymentAdminController extends Controller
 
     public function index(): void
     {
-        $payments = array_map(static function (array $p) {
-            $p['company'] = Company::find($p['company_id']);
-            $p['receipt_image'] = $p['manual_receipt_image_id'] !== null ? Image::find($p['manual_receipt_image_id']) : null;
+        $pending = Payment::pendingManualTransfers();
+        $companies = Company::findMany(array_column($pending, 'company_id'));
+        $images = Image::findMany(array_column($pending, 'manual_receipt_image_id'));
+
+        $payments = array_map(static function (array $p) use ($companies, $images) {
+            $p['company'] = $companies[$p['company_id']] ?? null;
+            $p['receipt_image'] = $images[$p['manual_receipt_image_id']] ?? null;
 
             return $p;
-        }, Payment::pendingManualTransfers());
+        }, $pending);
 
         $this->render('Payment::admin-index', [
             'payments' => $payments,

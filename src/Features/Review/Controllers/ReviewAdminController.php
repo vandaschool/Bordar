@@ -31,10 +31,16 @@ final class ReviewAdminController extends Controller
     {
         $applications = Application::byStatuses(['SUBMITTED', 'UNDER_REVIEW', 'PENDING_INFO']);
 
-        $rows = array_map(function (array $app) {
-            $app['company'] = Company::find($app['company_id']);
-            $app['cohort'] = Cohort::find($app['cohort_id']);
-            $app['reviewer_count'] = count(ApplicationReviewer::forApplication($app['id']));
+        // Batched instead of N+1: one query per referenced table/aggregate for
+        // the whole list, not one per row.
+        $companies = Company::findMany(array_column($applications, 'company_id'));
+        $cohorts = Cohort::findMany(array_column($applications, 'cohort_id'));
+        $reviewerCounts = ApplicationReviewer::countsForApplications(array_column($applications, 'id'));
+
+        $rows = array_map(static function (array $app) use ($companies, $cohorts, $reviewerCounts) {
+            $app['company'] = $companies[$app['company_id']] ?? null;
+            $app['cohort'] = $cohorts[$app['cohort_id']] ?? null;
+            $app['reviewer_count'] = $reviewerCounts[$app['id']] ?? 0;
 
             return $app;
         }, $applications);

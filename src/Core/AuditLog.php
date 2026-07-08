@@ -37,4 +37,23 @@ final class AuditLog
             'ua' => Request::userAgent(),
         ]);
     }
+
+    /** Used for lightweight brute-force throttling (e.g. failed login attempts per IP). */
+    public static function countRecentByAction(string $action, string $ipAddress, int $withinMinutes): int
+    {
+        $pdo = Database::connection();
+
+        $stmt = $pdo->prepare(
+            'SELECT COUNT(*) FROM `audit_logs`
+             WHERE `action` = :action AND `ip_address` = :ip AND `created_at` >= :since'
+        );
+
+        $stmt->execute([
+            'action' => $action,
+            'ip' => $ipAddress,
+            'since' => gmdate('Y-m-d H:i:s', time() - $withinMinutes * 60),
+        ]);
+
+        return (int) $stmt->fetchColumn();
+    }
 }

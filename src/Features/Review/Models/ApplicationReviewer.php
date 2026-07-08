@@ -50,6 +50,37 @@ final class ApplicationReviewer
         return $stmt->fetchAll();
     }
 
+    /**
+     * Reviewer-count per application in a single grouped query, for list
+     * views that would otherwise run one forApplication() query per row.
+     *
+     * @param array<int, string> $applicationIds
+     * @return array<string, int> application_id => count
+     */
+    public static function countsForApplications(array $applicationIds): array
+    {
+        $applicationIds = array_values(array_unique(array_filter($applicationIds)));
+
+        if ($applicationIds === []) {
+            return [];
+        }
+
+        $placeholders = implode(', ', array_fill(0, count($applicationIds), '?'));
+        $sql = "SELECT `application_id`, COUNT(*) AS `total` FROM `application_reviewers`
+                WHERE `deleted_at` IS NULL AND `application_id` IN ({$placeholders})
+                GROUP BY `application_id`";
+
+        $stmt = self::pdo()->prepare($sql);
+        $stmt->execute($applicationIds);
+
+        $counts = [];
+        foreach ($stmt->fetchAll() as $row) {
+            $counts[$row['application_id']] = (int) $row['total'];
+        }
+
+        return $counts;
+    }
+
     public static function activeWorkloadCount(string $reviewerUserId): int
     {
         $sql = "SELECT COUNT(*) FROM `application_reviewers`

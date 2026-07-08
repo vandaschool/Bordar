@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Features\Auth\Controllers;
 
 use App\Core\Auth;
+use App\Core\AuditLog;
 use App\Core\Controller;
 use App\Core\Request;
 use App\Core\Response;
@@ -16,6 +17,10 @@ use App\Lib\Validator;
 
 final class AuthController extends Controller
 {
+    private const LOGIN_THROTTLE_MAX_ATTEMPTS = 10;
+
+    private const LOGIN_THROTTLE_WINDOW_MINUTES = 15;
+
     private AuthService $service;
 
     public function __construct()
@@ -147,6 +152,16 @@ final class AuthController extends Controller
 
         if ($validator->fails()) {
             $this->render('Auth::login', ['errors' => $validator->errors()]);
+
+            return;
+        }
+
+        $recentFailures = AuditLog::countRecentByAction('auth.login_failed', Request::ip(), self::LOGIN_THROTTLE_WINDOW_MINUTES);
+
+        if ($recentFailures >= self::LOGIN_THROTTLE_MAX_ATTEMPTS) {
+            $this->render('Auth::login', ['errors' => [
+                'تعداد تلاش‌های ورود ناموفق بیش از حد مجاز است. لطفاً ' . self::LOGIN_THROTTLE_WINDOW_MINUTES . ' دقیقه دیگر تلاش کنید.',
+            ]]);
 
             return;
         }

@@ -191,8 +191,20 @@ final class MentorService
         );
     }
 
-    public function cancelSession(string $sessionId, string $actorNote = ''): array
+    public function cancelSession(string $sessionId, string $mentorUserId, string $actorNote = ''): array
     {
+        $session = MentorSession::find($sessionId);
+
+        if ($session === null) {
+            throw new \RuntimeException('جلسه یافت نشد.');
+        }
+
+        $mentor = Mentor::find($session['mentor_id']);
+
+        if ($mentor === null || $mentor['user_id'] !== $mentorUserId) {
+            throw new \RuntimeException('شما اجازه لغو این جلسه را ندارید.');
+        }
+
         MentorSession::update($sessionId, ['status' => 'CANCELED']);
         AuditLog::record('mentor.session_canceled', 'MentorSession', $sessionId, null, ['note' => $actorNote]);
 

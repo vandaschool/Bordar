@@ -139,6 +139,38 @@ abstract class Model
         return static::where($tenantColumn, $companyId);
     }
 
+    /**
+     * Batch-fetches rows by id in a single query and returns them keyed by
+     * id, so callers building a list (e.g. "each application's company")
+     * can avoid an N+1 find() per row - one query per referenced table
+     * instead of one per row.
+     *
+     * @param array<int, string> $ids
+     * @return array<string, array<string, mixed>>
+     */
+    public static function findMany(array $ids): array
+    {
+        $ids = array_values(array_unique(array_filter($ids, static fn ($id) => $id !== null && $id !== '')));
+
+        if ($ids === []) {
+            return [];
+        }
+
+        $placeholders = implode(', ', array_fill(0, count($ids), '?'));
+        $sql = 'SELECT * FROM `' . static::$table . '` WHERE `' . static::$primaryKey . '` IN (' . $placeholders . ')';
+        $sql .= static::$softDeletes ? ' AND `deleted_at` IS NULL' : '';
+
+        $stmt = static::pdo()->prepare($sql);
+        $stmt->execute($ids);
+
+        $byId = [];
+        foreach ($stmt->fetchAll() as $row) {
+            $byId[$row[static::$primaryKey]] = $row;
+        }
+
+        return $byId;
+    }
+
     public static function uuid(): string
     {
         $data = random_bytes(16);

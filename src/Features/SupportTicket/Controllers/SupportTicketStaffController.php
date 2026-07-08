@@ -25,11 +25,14 @@ final class SupportTicketStaffController extends Controller
 
     public function index(): void
     {
-        $tickets = array_map(static function (array $t) {
-            $t['requester'] = User::find($t['user_id']);
+        $openTickets = SupportTicket::allOpenOrdered();
+        $requesters = User::findMany(array_column($openTickets, 'user_id'));
+
+        $tickets = array_map(static function (array $t) use ($requesters) {
+            $t['requester'] = $requesters[$t['user_id']] ?? null;
 
             return $t;
-        }, SupportTicket::allOpenOrdered());
+        }, $openTickets);
 
         $this->render('SupportTicket::staff-index', ['tickets' => $tickets]);
     }

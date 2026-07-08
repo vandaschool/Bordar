@@ -197,7 +197,7 @@ final class MentorServiceTest extends TestCase
         $target = $slots[0];
 
         $first = $service->bookSession($mentor['id'], $companyA['id'], $target['start_utc'], $target['end_utc'], 'first');
-        $service->cancelSession($first['id']);
+        $service->cancelSession($first['id'], $mentor['user_id']);
 
         $second = $service->bookSession($mentor['id'], $companyB['id'], $target['start_utc'], $target['end_utc'], 'second');
 
@@ -235,5 +235,24 @@ final class MentorServiceTest extends TestCase
 
         $this->expectException(\RuntimeException::class);
         $service->recordOutcome($session['id'], $otherMentorUser, 'x', 'y');
+    }
+
+    public function test_cancel_session_rejects_a_different_mentor(): void
+    {
+        $mentor = $this->makeMentor('h');
+        $otherMentorUser = User::insert([
+            'email' => 'other-mentor-cancel@example.com',
+            'password_hash' => password_hash('Password123', PASSWORD_BCRYPT),
+            'first_name' => 'O', 'last_name' => 'C',
+            'role_id' => self::$mentorRoleId,
+            'is_active' => 1,
+        ]);
+        $company = $this->makeCompany('h');
+        $service = new MentorService();
+        $slots = $service->availableSlots($mentor, 7);
+        $session = $service->bookSession($mentor['id'], $company['id'], $slots[0]['start_utc'], $slots[0]['end_utc'], 'agenda');
+
+        $this->expectException(\RuntimeException::class);
+        $service->cancelSession($session['id'], $otherMentorUser);
     }
 }

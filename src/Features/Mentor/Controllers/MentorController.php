@@ -27,11 +27,14 @@ final class MentorController extends Controller
 
     public function index(): void
     {
-        $mentors = array_map(static function (array $m) {
-            $m['user'] = User::find($m['user_id']);
+        $active = array_filter(Mentor::allActive(), static fn ($m) => $m['availability'] !== null && $m['availability'] !== '[]');
+        $users = User::findMany(array_column($active, 'user_id'));
+
+        $mentors = array_map(static function (array $m) use ($users) {
+            $m['user'] = $users[$m['user_id']] ?? null;
 
             return $m;
-        }, array_filter(Mentor::allActive(), static fn ($m) => $m['availability'] !== null && $m['availability'] !== '[]'));
+        }, $active);
 
         $this->render('Mentor::index', ['mentors' => $mentors]);
     }

@@ -98,8 +98,13 @@ final class MentorProfileController extends Controller
     {
         $this->requireCsrf();
 
-        $this->service->cancelSession($sessionId, 'canceled by mentor');
-        Session::flash('status', 'جلسه لغو شد.');
+        try {
+            $this->service->cancelSession($sessionId, Auth::id(), 'canceled by mentor');
+            Session::flash('status', 'جلسه لغو شد.');
+        } catch (\Throwable $e) {
+            Session::flash('error', $e->getMessage());
+        }
+
         $this->redirect('/mentor/sessions');
     }
 }

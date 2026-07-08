@@ -1,5 +1,62 @@
 # PROGRESS.md
 
+## فاز ۶: بهینه‌سازی، بازبینی امنیتی، مستندسازی و آماده‌سازی استقرار — ✅ تکمیل‌شده
+
+تاریخ: 2026-07-08
+
+این فاز برخلاف فازهای قبل، قابلیت جدید اضافه نمی‌کند؛ طبق سند مستر پرامپت، فاز نهایی به بهینه‌سازی عملکرد، بازبینی امنیتی سیستماتیک، تکمیل مستندات و آماده‌سازی استقرار روی هاست اشتراکی اختصاص دارد.
+
+### ۱. بهینه‌سازی عملکرد
+
+- **رفع N+1 Query**: `Core\Model::findMany(array $ids)` اضافه شد — یک کوئری دسته‌ای `WHERE id IN (...)` به‌جای N فراخوانی `find()` جداگانه در حلقه، با حفظ Soft Delete و بازگشت نتیجه به‌صورت آرایه کلیدشده با id. مشابه آن، `ApplicationReviewer::countsForApplications()` یک کوئری `GROUP BY` واحد به‌جای N فراخوانی `forApplication()` است.
+- کنترلرهای لیستی که پیش‌تر برای هر ردیف یک کوئری جداگانه (شرکت/کوهورت/کاربر) می‌زدند بازنویسی شدند تا از این batch-fetch استفاده کنند: `ReviewAdminController::index`, `PaymentAdminController::index`, `SupportTicketStaffController::index`, `MentorController::index`.
+- **Caching در سطح وب‌سرور**: به `public/.htaccess` بلوک‌های `mod_expires` (کش ۳۰ روزه دارایی‌های استاتیک css/js/png/jpeg/svg/woff2) و `mod_deflate` (فشرده‌سازی gzip برای html/css/js/json) اضافه شد.
+- تست رگرسیون `tests/Integration/ModelFindManyTest.php` (۴ تست: نتیجه کلیدشده، id نامعتبر/خالی نادیده گرفته می‌شود، ورودی خالی بدون کوئری، رعایت Soft Delete).
+
+### ۲. بازبینی امنیتی
+
+روش: چون این مخزن فقط یک شاخه دارد (بدون شاخه پایه جداگانه برای diff)، به‌جای skill خودکار `security-review`، یک ممیزی دستی و سیستماتیک مبتنی بر grep روی کل کد انجام شد.
+
+- **پوشش CSRF**: بررسی متقابل همه مسیرهای POST/PUT در برابر فراخوانی `requireCsrf()` در هر کنترلر — بدون نقص.
+- **XSS**: تایید شد `View::e()` به‌صورت یکپارچه روی همه خروجی‌های HTML اعمال می‌شود. یک نقص واقعی پیدا و رفع شد: لینک‌های درس LMS (نوع VIDEO/EXTERNAL_LINK) بدون اعتبارسنجی scheme ذخیره می‌شدند و به‌صورت `href` رندر می‌شدند — یک URI مخرب `javascript:` (فقط توسط ادمین قابل تزریق، ولی defense-in-depth) اکنون در `LmsService::addLesson()` با بررسی `parse_url($url, PHP_URL_SCHEME)` رد می‌شود.
+- **SQL Injection**: بررسی همه فایل‌های Model — همه کوئری‌ها از PDO Prepared Statements استفاده می‌کنند؛ هیچ کوئری خام با ورودی کاربر یافت نشد.
+- **نبود محدودسازی نرخ ورود (نقص واقعی، رفع‌شده)**: تایید 2FA از قبل `OTP_MAX_ATTEMPTS=5` داشت، اما فرم ورود با رمز عبور هیچ محافظتی در برابر Brute-force نداشت.
+  - `AuditLog::countRecentByAction(string $action, string $ipAddress, int $withinMinutes): int` اضافه شد (روی جدول موجود `audit_logs` که هر تلاش ورود ناموفق را با IP ثبت می‌کند).
+  - Migration `026_add_audit_logs_throttle_index.sql`: ایندکس ترکیبی `(action, ip_address, created_at)` برای کارایی این کوئری.
+  - `AuthController::login()`: پس از اعتبارسنجی فرم و پیش از هرگونه کوئری روی جدول `users`، اگر تعداد ورود ناموفق از همان IP در ۱۵ دقیقه اخیر به ۱۰ برسد، با پیام فارسی مسدود می‌شود (بدون افشای اینکه ایمیل ثبت‌نام شده یا نه).
+  - تایید با تست HTTP واقعی: ۱۰ تلاش ناموفق پیام معمول خطا برگرداند، تلاش یازدهم پیام محدودیت را نشان داد؛ پس از پاک‌سازی شمارنده، ورود صحیح ادمین بدون مشکل کار کرد (ریدایرکت درست به `/2fa/verify`).
+  - تست رگرسیون `tests/Integration/AuditLogThrottleTest.php` (۳ تست: شمارش صحیح بر اساس action+ip، نادیده گرفتن رکوردهای خارج از پنجره زمانی، رسیدن به آستانه).
+- **بازبینی چندمستأجری فازهای ۵ (Task/Mentor/LMS/SupportTicket)** — یک نقص IDOR واقعی پیدا و رفع شد:
+  - `MentorService::cancelSession()` بدون بررسی مالکیت، هر `sessionId` را لغو می‌کرد؛ هر منتور احراز هویت‌شده می‌توانست جلسه منتور دیگری را با حدس/افزایش شناسه لغو کند (Denial of Service علیه شرکت رزروکننده). امضای متد به `cancelSession(string $sessionId, string $mentorUserId, ...)` تغییر کرد و همان الگوی بررسی مالکیت `recordOutcome()` (که پیش‌تر صحیح بود) اعمال شد؛ `MentorProfileController::cancel()` اکنون `Auth::id()` را پاس می‌دهد و خطای عدم‌مجوز را به‌جای throw خام، با پیام فارسی به کاربر نمایش می‌دهد.
+  - تست رگرسیون `test_cancel_session_rejects_a_different_mentor` به `MentorServiceTest.php` اضافه شد.
+  - سایر بخش‌های فاز ۵ بدون نقص تایید شدند: Task (`findScoped` روی همه mutation)، LMS (بررسی `cohort_id` در `show`)، SupportTicket (بررسی مالکیت در `loadOwnTicket`، صف Staff عمداً بدون محدودیت شرکت طبق RBAC).
+- **بازبینی امنیت آپلود فایل**: هر دو مسیر آپلود (Document Vault، رسید پرداخت) از `Lib\FileUploader` با بررسی Magic Number استفاده می‌کنند (نه فقط پسوند/MIME)؛ ذخیره‌سازی خارج از `public/` با نام تصادفی (`bin2hex(random_bytes(16))`، بدون اتکا به نام فایل کاربر) — بدون نقص Path Traversal؛ دانلود فقط از طریق لینک امضاشده زمان‌دار با بررسی صریح `canAccess()`.
+
+### ۳. مستندسازی
+
+- **`README.md`** به‌طور کامل بازنویسی شد (نسخه قبلی فقط فاز ۱ را پوشش می‌داد): جدول کامل امکانات هر ۶ فاز، جدول متغیرهای `.env` با توضیح و نکات امنیتی هرکدام، جدول خلاصه RBAC، بخش مستقل «امنیت» با فهرست تدابیر پیاده‌سازی‌شده، لینک به `PROGRESS.md` و `docs/DEPLOYMENT.md`.
+- **`docs/DEPLOYMENT.md`** (جدید): راهنمای گام‌به‌گام استقرار روی هاست اشتراکی — آپلود فایل با/بدون امکان تغییر Document Root، نصب وابستگی‌ها با/بدون SSH، تولید `APP_KEY` امن، چک‌لیست متغیرهای `.env` الزامی پیش از production (`APP_DEBUG=false`, `ZARINPAL_SANDBOX=false`, تغییر رمز ادمین seed‌شده)، اجرای migration/seed، چک‌لیست بررسی امنیتی پس از استقرار، و محدودیت‌های شناخته‌شده هاست اشتراکی (بدون Queue/Cron در این نسخه).
+- `.env.example` تکمیل شد: متغیرهای `ADMIN_SEED_EMAIL`/`ADMIN_SEED_PASSWORD` که در seeder استفاده می‌شدند ولی در نمونه فایل نبودند اضافه شدند.
+
+### ۴. تست‌های پاس‌شده
+
+- `composer test` → **149/149 passed, 405 assertions** (۸ تست جدید نسبت به پایان فاز ۵: `ModelFindManyTest` ×۴، `AuditLogThrottleTest` ×۳، `test_cancel_session_rejects_a_different_mentor` ×۱).
+- Lint: `php -l` روی همه فایل‌های `src/`, `public/`, `tests/` بدون خطا.
+- تست End-to-End روی HTTP واقعی با MariaDB: محدودسازی نرخ ورود (۱۰ تلاش ناموفق → مسدود، ورود صحیح پس از پاک‌سازی شمارنده موفق)، بررسی سلامت صفحات عمومی (`/`, `/login`, `/register`, `/forgot-password` → ۲۰۰) و صفحات نیازمند ورود (`/dashboard`, `/company`, `/applications`, `/admin/reviews`, `/payment`, `/tasks`, `/mentors`, `/lms`, `/tickets` → همگی ۳۰۲ ریدایرکت صحیح به ورود، بدون خطای ۵۰۰)، بدون هیچ خطا/warning در لاگ سرور.
+
+### ۵. محدودیت‌های صادقانه و نکات برای توسعه آینده
+
+- Migration جدید (`026`) روی دیتابیس توسعه و تست اجرا و تایید شد؛ روی دیتابیس production باید طبق `docs/DEPLOYMENT.md` هنگام استقرار اجرا شود.
+- آستانه محدودسازی نرخ ورود (۱۰ تلاش در ۱۵ دقیقه) یک مقدار ثابت در کد (`AuthController::LOGIN_THROTTLE_*`) است، نه قابل‌تنظیم از `.env` یا پنل ادمین؛ در صورت نیاز به تنظیم پویا باید به `system_configs` منتقل شود.
+- اتصال واقعی به sandbox.zarinpal.com و ارسال واقعی SMS/Email همچنان در این محیط توسعه (شبکه محدود) قابل آزمایش نیستند؛ طبق یادداشت فاز ۴، منطق با test double تایید شده اما تراکنش/ارسال زنده نیاز به محیط production یا شبکه باز دارد.
+- بازبینی امنیتی این فاز مبتنی بر بازرسی دستی و سیستماتیک کد بود (نه اسکنر خودکار SAST)؛ در صورت استقرار production، اجرای یک ابزار SAST مستقل (مثل PHPStan در سطح امنیتی یا Psalm) به‌عنوان لایه دوم توصیه می‌شود.
+
+### کامیت
+
+تغییرات این فاز طی یک کامیت با پیام مرتبط ثبت و به شاخه `claude/untitled-session-s0fr4t` push شد.
+
+---
+
 ## فاز ۵: مدیریت وظایف، رزرو منتورینگ و مرکز آموزش پایه — ✅ تکمیل‌شده
 
 تاریخ: 2026-07-08

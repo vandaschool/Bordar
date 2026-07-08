@@ -31,6 +31,18 @@ final class LmsService
             throw new \InvalidArgumentException('نوع درس نامعتبر است.');
         }
 
+        if (in_array($type, ['VIDEO', 'EXTERNAL_LINK'], true)) {
+            $url = (string) ($content['url'] ?? '');
+            $scheme = parse_url($url, PHP_URL_SCHEME);
+
+            // Rendered later as a plain href; rejecting anything but http(s)
+            // blocks a javascript:/data: URI from ending up in the DOM even
+            // though only an Admin can reach this endpoint.
+            if (!in_array($scheme, ['http', 'https'], true)) {
+                throw new \InvalidArgumentException('لینک باید با http:// یا https:// شروع شود.');
+            }
+        }
+
         $id = Lesson::insert([
             'course_id' => $courseId,
             'title' => $title,
