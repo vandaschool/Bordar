@@ -14,7 +14,10 @@ $_ENV['DB_DATABASE'] = $_ENV['DB_TEST_DATABASE'] ?? 'bordar_test';
 $pdo = Database::connection();
 
 $pdo->exec('SET FOREIGN_KEY_CHECKS=0');
-foreach (['otp_codes', 'audit_logs', 'user_sessions', 'users', 'roles', 'migrations'] as $table) {
+foreach ([
+    'applications', 'company_cohorts', 'cohorts', 'companies',
+    'otp_codes', 'audit_logs', 'user_sessions', 'users', 'roles', 'migrations',
+] as $table) {
     $pdo->exec("DROP TABLE IF EXISTS `{$table}`");
 }
 $pdo->exec('SET FOREIGN_KEY_CHECKS=1');

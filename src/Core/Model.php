@@ -116,6 +116,29 @@ abstract class Model
         return $stmt->execute(['now' => gmdate('Y-m-d H:i:s'), 'id' => $id]);
     }
 
+    /**
+     * Tenant-scoped lookup: guarantees a record can only be fetched by a
+     * caller that already knows the owning company_id, preventing accidental
+     * cross-tenant access even if the id itself leaks (e.g. via URL guessing).
+     */
+    public static function findScoped(string $id, string $companyId, string $tenantColumn = 'company_id'): ?array
+    {
+        $sql = 'SELECT * FROM `' . static::$table . '` WHERE `' . static::$primaryKey . '` = :id AND `' . $tenantColumn . '` = :company_id';
+        $sql .= static::$softDeletes ? ' AND `deleted_at` IS NULL' : '';
+
+        $stmt = static::pdo()->prepare($sql);
+        $stmt->execute(['id' => $id, 'company_id' => $companyId]);
+        $row = $stmt->fetch();
+
+        return $row === false ? null : $row;
+    }
+
+    /** @return array<int, array<string, mixed>> */
+    public static function allScoped(string $companyId, string $tenantColumn = 'company_id'): array
+    {
+        return static::where($tenantColumn, $companyId);
+    }
+
     public static function uuid(): string
     {
         $data = random_bytes(16);
