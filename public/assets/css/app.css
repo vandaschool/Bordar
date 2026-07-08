@@ -464,6 +464,118 @@ a {
     height: 100%;
 }
 
+.board-tabs {
+    display: none;
+    gap: 6px;
+    margin-bottom: 14px;
+    overflow-x: auto;
+}
+
+.kanban-board {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+    align-items: start;
+}
+
+.kanban-column {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    padding: 12px;
+    min-height: 120px;
+}
+
+.kanban-column h3 {
+    margin: 0 0 10px;
+    font-size: 0.95rem;
+    display: flex;
+    justify-content: space-between;
+}
+
+.kanban-column-body {
+    min-height: 60px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.task-card {
+    background: var(--color-bg);
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    padding: 10px 12px;
+    cursor: grab;
+    font-size: 0.9rem;
+}
+
+.task-card.dragging {
+    opacity: 0.4;
+}
+
+.task-card .priority-tag {
+    font-size: 0.72rem;
+    padding: 2px 8px;
+    border-radius: 999px;
+    display: inline-block;
+    margin-bottom: 4px;
+}
+
+.priority-tag.LOW { background: #eff6ff; color: #2563eb; }
+.priority-tag.MEDIUM { background: #fffbeb; color: #b45309; }
+.priority-tag.HIGH { background: #fef2f2; color: #dc2626; }
+
+.internal-note {
+    background: #fffbeb;
+    border-color: #fde68a;
+}
+
+@media (max-width: 700px) {
+    .kanban-board {
+        grid-template-columns: 1fr;
+    }
+
+    .board-tabs {
+        display: flex;
+    }
+
+    .kanban-column {
+        display: none;
+    }
+
+    .kanban-column.active {
+        display: block;
+    }
+}
+
+.slot-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
+    gap: 8px;
+}
+
+.slot-btn {
+    padding: 9px 6px;
+    border-radius: 8px;
+    border: 1px solid var(--color-border);
+    background: var(--color-surface);
+    color: var(--color-text);
+    font-family: inherit;
+    cursor: pointer;
+    direction: ltr;
+    font-size: 0.85rem;
+}
+
+.slot-btn:hover {
+    border-color: var(--color-primary);
+}
+
+.slot-btn.selected {
+    background: var(--color-primary);
+    color: #fff;
+    border-color: var(--color-primary);
+}
+
 @media (max-width: 375px) {
     .container, .container-wide {
         padding: 16px 12px;

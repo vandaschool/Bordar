@@ -14,6 +14,11 @@ use App\Features\Cohort\Controllers\CohortController;
 use App\Features\Company\Controllers\CompanyController;
 use App\Features\Company\Middleware\RequireCompanyMiddleware;
 use App\Features\Document\Controllers\DocumentController;
+use App\Features\LMS\Controllers\LmsAdminController;
+use App\Features\LMS\Controllers\LmsController;
+use App\Features\Mentor\Controllers\MentorController;
+use App\Features\Mentor\Controllers\MentorProfileController;
+use App\Features\Mentor\Middleware\MentorMiddleware;
 use App\Features\Notification\Controllers\NotificationController;
 use App\Features\Onboarding\Controllers\OnboardingController;
 use App\Features\Payment\Controllers\PaymentAdminController;
@@ -21,6 +26,10 @@ use App\Features\Payment\Controllers\PaymentController;
 use App\Features\Review\Controllers\ReviewAdminController;
 use App\Features\Review\Controllers\ReviewerController;
 use App\Features\Review\Middleware\ReviewerMiddleware;
+use App\Features\SupportTicket\Controllers\SupportTicketController;
+use App\Features\SupportTicket\Controllers\SupportTicketStaffController;
+use App\Features\SupportTicket\Middleware\StaffTicketMiddleware;
+use App\Features\Task\Controllers\TaskController;
 use App\Features\User\Controllers\DashboardController;
 
 $router = new Router();
@@ -87,6 +96,42 @@ $router->group(['middleware' => [AuthMiddleware::class]], function (Router $rout
     $router->get('/onboarding', [OnboardingController::class, 'index']);
     $router->post('/onboarding/checklist', [OnboardingController::class, 'toggleItem']);
     $router->post('/onboarding/tour/complete', [OnboardingController::class, 'completeTour']);
+
+    $router->group(['middleware' => [RequireCompanyMiddleware::class]], function (Router $router) {
+        $router->get('/tasks', [TaskController::class, 'index']);
+        $router->post('/tasks', [TaskController::class, 'store']);
+        $router->post('/tasks/{id}/status', [TaskController::class, 'updateStatus']);
+        $router->post('/tasks/{id}/delete', [TaskController::class, 'delete']);
+
+        $router->get('/mentors', [MentorController::class, 'index']);
+        $router->get('/mentors/my-sessions', [MentorController::class, 'mySessions']);
+        $router->get('/mentors/{mentorId}/slots', [MentorController::class, 'showSlots']);
+        $router->post('/mentors/{mentorId}/book', [MentorController::class, 'book']);
+    });
+
+    $router->get('/lms', [LmsController::class, 'index']);
+    $router->get('/lms/{id}', [LmsController::class, 'show']);
+
+    $router->get('/tickets', [SupportTicketController::class, 'index']);
+    $router->post('/tickets', [SupportTicketController::class, 'store']);
+    $router->get('/tickets/{id}', [SupportTicketController::class, 'show']);
+    $router->post('/tickets/{id}/reply', [SupportTicketController::class, 'reply']);
+});
+
+$router->group(['prefix' => '/staff', 'middleware' => [StaffTicketMiddleware::class]], function (Router $router) {
+    $router->get('/tickets', [SupportTicketStaffController::class, 'index']);
+    $router->get('/tickets/{id}', [SupportTicketStaffController::class, 'show']);
+    $router->post('/tickets/{id}/reply', [SupportTicketStaffController::class, 'reply']);
+    $router->post('/tickets/{id}/assign', [SupportTicketStaffController::class, 'assignToMe']);
+    $router->post('/tickets/{id}/status', [SupportTicketStaffController::class, 'updateStatus']);
+});
+
+$router->group(['prefix' => '/mentor', 'middleware' => [MentorMiddleware::class]], function (Router $router) {
+    $router->get('/profile', [MentorProfileController::class, 'edit']);
+    $router->post('/profile', [MentorProfileController::class, 'update']);
+    $router->get('/sessions', [MentorProfileController::class, 'sessions']);
+    $router->post('/sessions/{id}/outcome', [MentorProfileController::class, 'recordOutcome']);
+    $router->post('/sessions/{id}/cancel', [MentorProfileController::class, 'cancel']);
 });
 
 $router->group(['prefix' => '/admin', 'middleware' => [AdminMiddleware::class]], function (Router $router) {
@@ -106,6 +151,11 @@ $router->group(['prefix' => '/admin', 'middleware' => [AdminMiddleware::class]],
     $router->get('/payments/{id}/receipt', [PaymentAdminController::class, 'receipt']);
     $router->post('/payments/{id}/approve', [PaymentAdminController::class, 'approve']);
     $router->post('/payments/{id}/reject', [PaymentAdminController::class, 'reject']);
+
+    $router->get('/lms', [LmsAdminController::class, 'index']);
+    $router->post('/lms', [LmsAdminController::class, 'storeCourse']);
+    $router->get('/lms/{id}', [LmsAdminController::class, 'showCourse']);
+    $router->post('/lms/{id}/lessons', [LmsAdminController::class, 'addLesson']);
 });
 
 $router->group(['prefix' => '/reviewer', 'middleware' => [ReviewerMiddleware::class]], function (Router $router) {

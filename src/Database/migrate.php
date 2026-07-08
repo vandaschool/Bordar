@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Config\Database;
+use App\Lib\SqlSplitter;
 
 require dirname(__DIR__) . '/../vendor/autoload.php';
 
@@ -35,7 +36,7 @@ foreach ($files as $file) {
     echo "Applying migration: {$name}\n";
     $sql = file_get_contents($file);
 
-    foreach (array_filter(array_map('trim', explode(';', $sql))) as $statement) {
+    foreach (SqlSplitter::statements($sql) as $statement) {
         $pdo->exec($statement);
     }
 

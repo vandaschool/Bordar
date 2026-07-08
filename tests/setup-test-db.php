@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Config\Database;
+use App\Lib\SqlSplitter;
 
 require dirname(__DIR__) . '/vendor/autoload.php';
 
@@ -15,6 +16,8 @@ $pdo = Database::connection();
 
 $pdo->exec('SET FOREIGN_KEY_CHECKS=0');
 foreach ([
+    'support_ticket_messages', 'support_tickets', 'lessons', 'courses',
+    'mentor_sessions', 'mentors', 'tasks',
     'notifications', 'company_onboarding_progress', 'payments', 'invoices', 'images',
     'application_clarifications', 'application_reviewers', 'documents',
     'applications', 'company_cohorts', 'cohorts', 'companies',
@@ -29,7 +32,7 @@ $files = glob($dir . '/*.sql');
 sort($files);
 
 foreach ($files as $file) {
-    foreach (array_filter(array_map('trim', explode(';', file_get_contents($file)))) as $statement) {
+    foreach (SqlSplitter::statements(file_get_contents($file)) as $statement) {
         $pdo->exec($statement);
     }
 }

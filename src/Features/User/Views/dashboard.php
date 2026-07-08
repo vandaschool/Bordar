@@ -25,6 +25,8 @@ $roleName = $role['name'] ?? '-';
             <p><a href="/admin/cohorts">مدیریت کوهورت‌ها</a></p>
             <p><a href="/admin/reviews">صف داوری</a></p>
             <p><a href="/admin/payments">تایید فیش‌های واریزی</a></p>
+            <p><a href="/admin/lms">مدیریت مرکز آموزش</a></p>
+            <p><a href="/staff/tickets">صف تیکت‌های پشتیبانی</a></p>
         <?php elseif ($roleName === 'Applicant'): ?>
             <h2 style="margin-top:0;font-size:1.05rem">میانبرها</h2>
             <p><a href="/company">پروفایل شرکت</a></p>
@@ -32,9 +34,18 @@ $roleName = $role['name'] ?? '-';
             <p><a href="/documents">مخزن اسناد</a></p>
             <p><a href="/payment">پرداخت شهریه</a></p>
             <p><a href="/onboarding">شروع کار (Onboarding)</a></p>
+            <p><a href="/tasks">مدیریت وظایف</a></p>
+            <p><a href="/mentors">رزرو جلسه منتورینگ</a></p>
+            <p><a href="/lms">مرکز آموزش</a></p>
+            <p><a href="/tickets">پشتیبانی</a></p>
         <?php elseif ($roleName === 'Reviewer'): ?>
             <h2 style="margin-top:0;font-size:1.05rem">میانبرها</h2>
             <p><a href="/reviewer/queue">درخواست‌های تخصیص‌یافته به من</a></p>
+        <?php elseif ($roleName === 'Mentor'): ?>
+            <h2 style="margin-top:0;font-size:1.05rem">میانبرها</h2>
+            <p><a href="/mentor/profile">پروفایل و زمان‌های در دسترس</a></p>
+            <p><a href="/mentor/sessions">جلسات من</a></p>
+            <p><a href="/staff/tickets">تیکت‌های پشتیبانی</a></p>
         <?php endif; ?>
     </div>
 </div>

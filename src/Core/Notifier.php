@@ -30,6 +30,11 @@ final class Notifier
         'payment.received' => ['PAYMENT_RECEIVED', ['IN_APP', 'EMAIL', 'SMS']],
         'payment.rejected' => ['PAYMENT_DUE', ['IN_APP', 'EMAIL']],
         'onboarding.welcome' => ['GENERAL_ANNOUNCEMENT', ['IN_APP', 'EMAIL']],
+        'mentor.session_booked' => ['MENTOR_SESSION_REMINDER', ['IN_APP', 'EMAIL']],
+        'mentor.session_completed' => ['MENTOR_SESSION_REMINDER', ['IN_APP']],
+        'mentor.session_canceled' => ['MENTOR_SESSION_REMINDER', ['IN_APP', 'EMAIL']],
+        'support_ticket.created' => ['SUPPORT_TICKET_UPDATE', ['IN_APP']],
+        'support_ticket.replied' => ['SUPPORT_TICKET_UPDATE', ['IN_APP', 'EMAIL']],
     ];
 
     public static function send(string $event, string $userId, string $title, string $message, ?string $link = null): void
