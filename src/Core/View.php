@@ -22,11 +22,14 @@ final class View
         return $this->renderRaw('layout/' . $layout, array_merge($data, ['content' => $content]));
     }
 
-    private function renderRaw(string $view, array $data): string
+    private function renderRaw(string $view, array $viewData): string
     {
         $path = $this->resolve($view);
 
-        extract($data, EXTR_SKIP);
+        // Extracted under a throwaway local name so a view-data key literally
+        // called "data" (several views pass one) can't collide with this
+        // method's own parameter and get silently dropped by EXTR_SKIP.
+        extract($viewData, EXTR_SKIP);
 
         ob_start();
         require $path;

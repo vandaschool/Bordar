@@ -4,6 +4,7 @@
 /** @var array $data */
 /** @var array $missing */
 /** @var bool $readOnly */
+/** @var array $clarifications */
 /** @var string $csrf */
 
 use App\Core\Session;
@@ -121,4 +122,27 @@ $dis = $readOnly ? 'disabled' : '';
 
         <script src="/assets/js/application-autosave.js" defer></script>
     </div>
+
+    <?php if ($clarifications !== []): ?>
+        <div class="card" style="margin-top:16px">
+            <h2 style="margin-top:0;font-size:1.05rem">درخواست‌های شفاف‌سازی از داور</h2>
+            <?php foreach ($clarifications as $c): ?>
+                <div class="section-block"><div class="section-body">
+                    <p><strong>سوال داور:</strong> <?= View::e($c['question']) ?></p>
+                    <?php if ($c['response'] !== null): ?>
+                        <p><strong>پاسخ شما:</strong> <?= View::e($c['response']) ?></p>
+                    <?php else: ?>
+                        <form method="post" action="/applications/<?= View::e($application['id']) ?>/clarifications/<?= View::e($c['id']) ?>/respond">
+                            <input type="hidden" name="_csrf" value="<?= View::e($csrf) ?>">
+                            <div class="form-group">
+                                <label for="response-<?= View::e($c['id']) ?>">پاسخ شما</label>
+                                <textarea class="form-control" id="response-<?= View::e($c['id']) ?>" name="response" rows="3" required></textarea>
+                            </div>
+                            <button type="submit" class="btn btn-secondary">ارسال پاسخ</button>
+                        </form>
+                    <?php endif; ?>
+                </div></div>
+            <?php endforeach; ?>
+        </div>
+    <?php endif; ?>
 </div>

@@ -6,6 +6,7 @@ namespace App\Features\Application\Services;
 
 use App\Core\AuditLog;
 use App\Features\Application\Models\Application;
+use App\Features\Cohort\Models\CompanyCohort;
 use App\Lib\Sanitizer;
 
 final class ApplicationService
@@ -123,6 +124,7 @@ final class ApplicationService
         ]);
 
         AuditLog::record('application.submitted', 'Application', $application['id'], ['status' => 'DRAFT'], ['status' => 'SUBMITTED']);
+        CompanyCohort::upsertStatus($application['company_id'], $application['cohort_id'], 'APPLIED');
 
         return Application::find($application['id']);
     }

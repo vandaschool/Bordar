@@ -33,4 +33,16 @@ final class Application extends Model
 
         return $stmt->fetchAll();
     }
+
+    /** @param array<int, string> $statuses @return array<int, array<string, mixed>> */
+    public static function byStatuses(array $statuses): array
+    {
+        $placeholders = implode(', ', array_fill(0, count($statuses), '?'));
+        $sql = "SELECT * FROM `applications` WHERE `deleted_at` IS NULL AND `status` IN ({$placeholders}) ORDER BY `submitted_at` ASC";
+
+        $stmt = static::pdo()->prepare($sql);
+        $stmt->execute(array_values($statuses));
+
+        return $stmt->fetchAll();
+    }
 }

@@ -13,6 +13,10 @@ use App\Features\Application\Controllers\ApplicationController;
 use App\Features\Cohort\Controllers\CohortController;
 use App\Features\Company\Controllers\CompanyController;
 use App\Features\Company\Middleware\RequireCompanyMiddleware;
+use App\Features\Document\Controllers\DocumentController;
+use App\Features\Review\Controllers\ReviewAdminController;
+use App\Features\Review\Controllers\ReviewerController;
+use App\Features\Review\Middleware\ReviewerMiddleware;
 use App\Features\User\Controllers\DashboardController;
 
 $router = new Router();
@@ -59,7 +63,16 @@ $router->group(['middleware' => [AuthMiddleware::class]], function (Router $rout
         $router->get('/applications/{id}', [ApplicationController::class, 'show']);
         $router->post('/applications/{id}/autosave', [ApplicationController::class, 'autosave']);
         $router->post('/applications/{id}/submit', [ApplicationController::class, 'submit']);
+        $router->post('/applications/{id}/clarifications/{clarificationId}/respond', [ApplicationController::class, 'respondClarification']);
     });
+
+    $router->group(['middleware' => [RequireCompanyMiddleware::class]], function (Router $router) {
+        $router->get('/documents', [DocumentController::class, 'index']);
+        $router->post('/documents', [DocumentController::class, 'upload']);
+        $router->post('/documents/{id}/delete', [DocumentController::class, 'delete']);
+    });
+
+    $router->get('/documents/{id}/download', [DocumentController::class, 'download']);
 });
 
 $router->group(['prefix' => '/admin', 'middleware' => [AdminMiddleware::class]], function (Router $router) {
@@ -68,6 +81,21 @@ $router->group(['prefix' => '/admin', 'middleware' => [AdminMiddleware::class]],
     $router->post('/cohorts', [CohortController::class, 'store']);
     $router->get('/cohorts/{id}/edit', [CohortController::class, 'showEdit']);
     $router->put('/cohorts/{id}', [CohortController::class, 'update']);
+
+    $router->get('/reviews', [ReviewAdminController::class, 'index']);
+    $router->get('/reviews/{id}', [ReviewAdminController::class, 'show']);
+    $router->post('/reviews/{id}/assign', [ReviewAdminController::class, 'assign']);
+    $router->post('/reviews/{id}/unassign/{reviewerUserId}', [ReviewAdminController::class, 'unassign']);
+    $router->post('/reviews/{id}/override', [ReviewAdminController::class, 'override']);
+});
+
+$router->group(['prefix' => '/reviewer', 'middleware' => [ReviewerMiddleware::class]], function (Router $router) {
+    $router->get('/queue', [ReviewerController::class, 'queue']);
+    $router->get('/applications/{id}', [ReviewerController::class, 'show']);
+    $router->post('/applications/{id}/draft', [ReviewerController::class, 'saveDraft']);
+    $router->post('/applications/{id}/submit', [ReviewerController::class, 'submit']);
+    $router->post('/applications/{id}/conflict', [ReviewerController::class, 'toggleConflict']);
+    $router->post('/applications/{id}/clarify', [ReviewerController::class, 'requestClarification']);
 });
 
 return $router;

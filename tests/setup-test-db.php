@@ -15,6 +15,7 @@ $pdo = Database::connection();
 
 $pdo->exec('SET FOREIGN_KEY_CHECKS=0');
 foreach ([
+    'application_clarifications', 'application_reviewers', 'documents',
     'applications', 'company_cohorts', 'cohorts', 'companies',
     'otp_codes', 'audit_logs', 'user_sessions', 'users', 'roles', 'migrations',
 ] as $table) {

@@ -13,6 +13,8 @@ use App\Core\Tenant;
 use App\Features\Application\Models\Application;
 use App\Features\Application\Services\ApplicationService;
 use App\Features\Cohort\Models\Cohort;
+use App\Features\Review\Models\ApplicationClarification;
+use App\Features\Review\Services\ReviewService;
 
 final class ApplicationController extends Controller
 {
@@ -101,7 +103,40 @@ final class ApplicationController extends Controller
             'data' => $data,
             'missing' => $missing,
             'readOnly' => $application['status'] !== 'DRAFT',
+            'clarifications' => ApplicationClarification::forApplication($id),
         ]);
+    }
+
+    public function respondClarification(string $id, string $clarificationId): void
+    {
+        $this->requireCsrf();
+
+        $application = $this->loadScoped($id);
+        $clarification = ApplicationClarification::find($clarificationId);
+
+        if ($application === null || $clarification === null || $clarification['application_id'] !== $id) {
+            $this->redirect('/applications');
+
+            return;
+        }
+
+        $response = (string) Request::input('response', '');
+
+        if (trim($response) === '') {
+            Session::flash('error', 'پاسخ نمی‌تواند خالی باشد.');
+            $this->redirect('/applications/' . $id);
+
+            return;
+        }
+
+        try {
+            (new ReviewService())->respondClarification($clarificationId, $response);
+            Session::flash('status', 'پاسخ شما ثبت شد.');
+        } catch (\Throwable $e) {
+            Session::flash('error', $e->getMessage());
+        }
+
+        $this->redirect('/applications/' . $id);
     }
 
     public function autosave(string $id): void
