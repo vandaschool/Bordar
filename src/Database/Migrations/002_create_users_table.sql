@@ -1,0 +1,20 @@
+CREATE TABLE IF NOT EXISTS `users` (
+    `id` VARCHAR(36) PRIMARY KEY,
+    `email` VARCHAR(255) UNIQUE NOT NULL,
+    `password_hash` VARCHAR(255) NOT NULL,
+    `first_name` VARCHAR(255),
+    `last_name` VARCHAR(255),
+    `phone_number` VARCHAR(20) UNIQUE NULL,
+    `profile_picture_url` VARCHAR(2048),
+    `role_id` VARCHAR(36) NOT NULL,
+    `is_active` BOOLEAN DEFAULT TRUE,
+    `email_verified_at` DATETIME NULL,
+    `phone_verified_at` DATETIME NULL,
+    `two_factor_secret` VARCHAR(255) NULL,
+    `deleted_at` DATETIME NULL,
+    `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    KEY `idx_users_role_id` (`role_id`),
+    KEY `idx_users_deleted_at` (`deleted_at`),
+    CONSTRAINT `fk_users_role` FOREIGN KEY (`role_id`) REFERENCES `roles`(`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

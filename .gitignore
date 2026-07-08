@@ -1,0 +1,13 @@
+/vendor/
+/node_modules/
+.env
+.env.*.local
+*.log
+.DS_Store
+.idea/
+.vscode/*
+!.vscode/extensions.json
+/storage/*.key
+composer.phar
+.phpunit.cache/
+.phpunit.result.cache

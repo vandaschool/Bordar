@@ -1,0 +1,244 @@
+:root {
+    --color-primary: #2563eb;
+    --color-primary-dark: #1d4ed8;
+    --color-success: #16a34a;
+    --color-danger: #dc2626;
+    --color-text: #1f2937;
+    --color-muted: #6b7280;
+    --color-border: #e5e7eb;
+    --color-bg: #f9fafb;
+    --color-surface: #ffffff;
+    --radius: 10px;
+    --font-fa: 'Vazirmatn', 'Tahoma', sans-serif;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+html, body {
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    direction: rtl;
+    font-family: var(--font-fa);
+    background: var(--color-bg);
+    color: var(--color-text);
+    line-height: 1.8;
+    min-height: 100vh;
+}
+
+/* Numbers & Latin text stay LTR even inside an RTL document */
+.ltr, input[type="email"], input[type="password"], .otp-input, code, .ltr-num {
+    direction: ltr;
+    unicode-bidi: isolate;
+}
+
+a {
+    color: var(--color-primary);
+    text-decoration: none;
+}
+
+.site-header {
+    background: var(--color-surface);
+    border-bottom: 1px solid var(--color-border);
+    padding: 14px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.site-header .brand {
+    font-weight: 700;
+    font-size: 1.15rem;
+    color: var(--color-text);
+}
+
+.container {
+    width: 100%;
+    max-width: 440px;
+    margin: 0 auto;
+    padding: 24px 16px;
+}
+
+.container-wide {
+    width: 100%;
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 24px 16px;
+}
+
+.card {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    padding: 28px 24px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.card h1, .card h2 {
+    margin-top: 0;
+}
+
+.form-group {
+    margin-bottom: 18px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 0.9rem;
+    color: var(--color-muted);
+}
+
+.form-control {
+    width: 100%;
+    padding: 11px 14px;
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 1rem;
+    background: var(--color-surface);
+    color: var(--color-text);
+}
+
+.form-control:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    padding: 12px 16px;
+    border: none;
+    border-radius: 8px;
+    background: var(--color-primary);
+    color: #fff;
+    font-size: 1rem;
+    font-family: inherit;
+    cursor: pointer;
+    transition: background 0.15s ease;
+}
+
+.btn:hover {
+    background: var(--color-primary-dark);
+}
+
+.btn-secondary {
+    background: transparent;
+    color: var(--color-primary);
+    border: 1px solid var(--color-primary);
+}
+
+.help-text {
+    font-size: 0.85rem;
+    color: var(--color-muted);
+    margin-top: 18px;
+    text-align: center;
+}
+
+.alert {
+    padding: 12px 14px;
+    border-radius: 8px;
+    margin-bottom: 16px;
+    font-size: 0.92rem;
+}
+
+.alert-error {
+    background: #fef2f2;
+    color: var(--color-danger);
+    border: 1px solid #fecaca;
+}
+
+.alert-success {
+    background: #f0fdf4;
+    color: var(--color-success);
+    border: 1px solid #bbf7d0;
+}
+
+.field-error {
+    color: var(--color-danger);
+    font-size: 0.82rem;
+    margin-top: 4px;
+}
+
+.otp-code {
+    text-align: center;
+    font-size: 1.6rem;
+    letter-spacing: 0.5rem;
+}
+
+.secret-box {
+    background: var(--color-bg);
+    border: 1px dashed var(--color-border);
+    border-radius: 8px;
+    padding: 12px;
+    text-align: center;
+    font-size: 1.1rem;
+    letter-spacing: 0.15rem;
+    margin: 14px 0;
+    word-break: break-all;
+}
+
+.hero {
+    text-align: center;
+    padding: 60px 16px;
+}
+
+.hero h1 {
+    font-size: 2rem;
+    margin-bottom: 12px;
+}
+
+.hero p {
+    color: var(--color-muted);
+    max-width: 560px;
+    margin: 0 auto 28px;
+}
+
+.cta-row {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.cta-row .btn {
+    width: auto;
+    padding: 12px 28px;
+}
+
+.dashboard-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 999px;
+    background: #eff6ff;
+    color: var(--color-primary);
+    font-size: 0.8rem;
+}
+
+@media (max-width: 375px) {
+    .container, .container-wide {
+        padding: 16px 12px;
+    }
+
+    .card {
+        padding: 20px 16px;
+    }
+
+    .hero h1 {
+        font-size: 1.5rem;
+    }
+}
